@@ -10,6 +10,10 @@ export interface RawItem {
   publishedAt?: Date;
   /** 목록에서 이미 품절/종료가 표시되는 경우 */
   soldout?: boolean;
+  /** 목록에 가격이 별도 필드로 노출되는 경우 (퀘이사존 등). 제목 파싱보다 우선함 */
+  priceText?: string;
+  /** 목록에 배송비가 별도 필드로 노출되는 경우 */
+  shippingText?: string;
 }
 
 /** DB insert 직전 형태 */

@@ -6,6 +6,7 @@
  * 결과가 0건이면 parsers/<id>.ts 의 SELECTORS 를 수정하세요.
  */
 import { loadEnv } from './env';
+import { fetchHtml } from './http';
 loadEnv();
 
 const LIST_URLS: Record<string, { list: string; base: string }> = {
@@ -27,15 +28,15 @@ async function main() {
   const { normalize } = await import('./normalize');
 
   const parser = getParser(id)!;
-  const res = await fetch(target.list, {
-    headers: { 'User-Agent': 'HotdealBot/0.1', 'Accept-Language': 'ko-KR' },
-  });
-  console.log(`HTTP ${res.status} ${res.headers.get('content-type')}`);
 
-  const ct = res.headers.get('content-type') ?? '';
-  const charset = ct.match(/charset=([\w-]+)/i)?.[1]?.toLowerCase();
-  const buf = await res.arrayBuffer();
-  const html = new TextDecoder(charset && charset !== 'utf8' ? charset : 'utf-8').decode(buf);
+  let html: string;
+  try {
+    html = await fetchHtml(target.list);
+  } catch (e) {
+    console.error(`요청 실패: ${e instanceof Error ? e.message : String(e)}`);
+    process.exit(1);
+  }
+  console.log(`받은 HTML: ${html.length.toLocaleString()}자`);
 
   const items = parser.parseList(html, target.base);
   console.log(`\n파싱된 항목: ${items.length}건\n`);

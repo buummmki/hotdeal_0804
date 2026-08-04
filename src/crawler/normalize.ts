@@ -6,6 +6,7 @@ import type { RawItem, NormalizedDeal } from './types';
 // ------------------------------------------------------------
 const PRICE_PATTERNS: RegExp[] = [
   /([0-9][0-9,\.]*)\s*원/,            // 198,000원
+  /[￦₩]\s*([0-9][0-9,\.]*)/,         // ￦ 990,000  (퀘이사존)
   /\$\s*([0-9][0-9,\.]*)/,            // $29.99
   /([0-9][0-9,\.]*)\s*달러/,
   /([0-9][0-9,\.]*)\s*엔/,
@@ -52,6 +53,21 @@ export function extractShipping(title: string): { text: string | null; free: boo
     return { text: `${m[1]}원`, free: v === 0 };
   }
   return { text: null, free: null };
+}
+
+/** "배송비 무료", "2,500원", "조건부 무료" 같은 독립 배송비 문자열 파싱 */
+export function parseShippingText(text: string): { text: string | null; free: boolean | null } {
+  const t = text.replace(/\s+/g, ' ').trim();
+  if (!t) return { text: null, free: null };
+  if (/조건/.test(t)) return { text: t, free: false };
+  if (/무료|무배|free/i.test(t)) return { text: '무료배송', free: true };
+  if (/착불|별도|유료/.test(t)) return { text: t, free: false };
+  const m = t.match(/([0-9][0-9,]*)\s*원?/);
+  if (m) {
+    const v = Number(m[1].replace(/,/g, ''));
+    return { text: `${m[1]}원`, free: v === 0 };
+  }
+  return { text: t, free: null };
 }
 
 // ------------------------------------------------------------
@@ -114,8 +130,11 @@ export function normalize(
   sourceId: string,
   categoryMap: Record<string, string>
 ): NormalizedDeal {
-  const price = extractPrice(item.title);
-  const shipping = extractShipping(item.title);
+  // 목록에 가격/배송비가 별도 필드로 있으면 그쪽이 정확하므로 우선 사용
+  const price = item.priceText ? extractPrice(item.priceText) : extractPrice(item.title);
+  const shipping = item.shippingText
+    ? parseShippingText(item.shippingText)
+    : extractShipping(item.title);
   const now = new Date().toISOString();
 
   return {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { crawlAll, rescore } from '@/crawler/pipeline';
 
+export const runtime = 'nodejs'; // node:http2 를 쓰므로 edge 런타임 불가
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Vercel Hobby 한도
 

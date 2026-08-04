@@ -1,44 +1,14 @@
 import { serviceClient } from '@/lib/supabase';
+import { fetchHtml } from './http';
 import { getParser } from './parsers';
 import { normalize, normalizeTitle, similarity } from './normalize';
 import type { CrawlResult, NormalizedDeal } from './types';
 import type { Source } from '@/lib/types';
 
-const UA = 'HotdealBot/0.1 (+https://example.com/guide)';
-
-const FETCH_TIMEOUT_MS = 15_000;
 const POLITE_DELAY_MS = 1_500;
 const DUPLICATE_THRESHOLD = 0.62;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-async function fetchHtml(url: string): Promise<string> {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
-  try {
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': UA,
-        Accept: 'text/html,application/xhtml+xml',
-        'Accept-Language': 'ko-KR,ko;q=0.9',
-      },
-      signal: ctrl.signal,
-      cache: 'no-store',
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-    // 일부 커뮤니티는 EUC-KR 로 응답
-    const ct = res.headers.get('content-type') ?? '';
-    const charset = ct.match(/charset=([\w-]+)/i)?.[1]?.toLowerCase();
-    const buf = await res.arrayBuffer();
-    if (charset && charset !== 'utf-8' && charset !== 'utf8') {
-      return new TextDecoder(charset).decode(buf);
-    }
-    return new TextDecoder('utf-8').decode(buf);
-  } finally {
-    clearTimeout(timer);
-  }
-}
 
 /**
  * 중복 판별
@@ -104,16 +74,22 @@ export async function crawlSource(source: Source): Promise<CrawlResult> {
 
     const recentTitles = (recent ?? []) as { id: string; title_norm: string; price_value: number | null }[];
 
-    for (const item of items) {
-      const deal = normalize(item, source.id, source.category_map ?? {});
+    const deals = items.map((item) => normalize(item, source.id, source.category_map ?? {}));
 
-      // 같은 출처의 기존 글이면 반응 수치만 갱신
-      const { data: existing } = await db
-        .from('deal')
-        .select('id, comment_count, status')
-        .eq('source_id', deal.source_id)
-        .eq('external_id', deal.external_id)
-        .maybeSingle();
+    // 기존 글 조회를 건당 1쿼리 → 소스당 1쿼리로. (Vercel maxDuration 60초 대응)
+    const { data: existingRows } = await db
+      .from('deal')
+      .select('id, external_id, comment_count, status')
+      .eq('source_id', source.id)
+      .in('external_id', deals.map((d) => d.external_id));
+
+    const existingMap = new Map(
+      ((existingRows ?? []) as { id: string; external_id: string; comment_count: number; status: string }[])
+        .map((r) => [r.external_id, r])
+    );
+
+    for (const deal of deals) {
+      const existing = existingMap.get(deal.external_id);
 
       if (existing) {
         const changed =
