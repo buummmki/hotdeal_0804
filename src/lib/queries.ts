@@ -168,9 +168,19 @@ export async function mostCommented(limit = 8): Promise<DealWithSource[]> {
   return deals;
 }
 
+/**
+ * 노출용 출처 목록.
+ *
+ * 비활성 출처(is_active=false)는 수집이 멈춰 딜이 0건이므로 제외합니다.
+ * 목록·사이트맵에 남겨두면 빈 페이지가 색인돼 사이트 품질 평가에 불리합니다.
+ */
 export async function listSources(): Promise<Source[]> {
   if (!isConfigured) return MOCK_SOURCES;
-  const { data, error } = await supabase.from('source').select('*').order('name');
+  const { data, error } = await supabase
+    .from('source')
+    .select('*')
+    .eq('is_active', true)
+    .order('name');
   if (error) throw new Error(`출처 조회 실패: ${error.message}`);
   return (data ?? []) as Source[];
 }

@@ -21,6 +21,8 @@ export async function generateMetadata({
     title: `${s.name} 특가 모음`,
     description: `${s.name}에 올라온 최신 특가·핫딜을 모아 랭킹으로 보여줍니다.`,
     alternates: { canonical: `/source/${s.id}` },
+    // 수집이 멈춘 출처는 딜이 없어 빈 페이지가 되므로 색인에서 제외
+    robots: s.is_active ? { index: true, follow: true } : { index: false, follow: true },
   };
 }
 
