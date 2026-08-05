@@ -29,6 +29,12 @@ type Props = {
    * 예: `${cat}-${sort}-${page}`
    */
   variant?: string;
+  /**
+   * 고정 크기 단위(예: 300×250)일 때 지정.
+   * 고정 단위는 반응형 속성(data-ad-format, full-width-responsive)을 붙이면 안 되고
+   * inline-block 에 크기를 직접 줘야 합니다.
+   */
+  fixed?: { width: number; height: number };
 };
 
 /**
@@ -49,6 +55,7 @@ export default function AdSlot({
   className = '',
   minHeight = 280,
   variant,
+  fixed,
 }: Props) {
   // 화면이 바뀌면 같은 ins 를 재사용하지 않고 새로 마운트해야 광고가 다시 뜬다.
   //
@@ -78,16 +85,26 @@ export default function AdSlot({
   return (
     <div className={`my-4 ${className}`} aria-label="광고">
       <div className="mb-1 text-[11px] leading-none text-muted">광고</div>
-      <ins
-        key={routeKey}
-        className="adsbygoogle block"
-        style={{ display: 'block', minHeight }}
-        data-ad-client={CLIENT}
-        data-ad-slot={slot}
-        data-ad-format={format}
-        data-ad-layout-key={layoutKey}
-        data-full-width-responsive="true"
-      />
+      {fixed ? (
+        <ins
+          key={routeKey}
+          className="adsbygoogle"
+          style={{ display: 'inline-block', width: fixed.width, height: fixed.height }}
+          data-ad-client={CLIENT}
+          data-ad-slot={slot}
+        />
+      ) : (
+        <ins
+          key={routeKey}
+          className="adsbygoogle block"
+          style={{ display: 'block', minHeight }}
+          data-ad-client={CLIENT}
+          data-ad-slot={slot}
+          data-ad-format={format}
+          data-ad-layout-key={layoutKey}
+          data-full-width-responsive="true"
+        />
+      )}
     </div>
   );
 }
