@@ -14,7 +14,7 @@ export const BROWSER_UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 ' +
   '(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 
-const TIMEOUT_MS = Number(process.env.CRAWL_TIMEOUT_MS ?? 10_000);
+const TIMEOUT_MS = Number(process.env.CRAWL_TIMEOUT_MS ?? 20_000);
 
 const COMMON_HEADERS: Record<string, string> = {
   'user-agent': BROWSER_UA,
@@ -133,19 +133,54 @@ function decode(body: Buffer, contentType: string): string {
   return body.toString('utf8');
 }
 
-/** 목록 페이지 HTML 을 문자열로. 실패하면 예외를 던집니다. */
-export async function fetchHtml(url: string): Promise<string> {
-  let res: RawResponse;
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * 한 번 시도.
+ *  기본은 fetch. 대부분의 사이트에서 가장 안정적입니다.
+ *  fetch 가 실패하거나 403/429 를 받으면(= 봇 판정) http2 로 재시도합니다.
+ *  퀘이사존이 정확히 이 경우입니다.
+ */
+async function attempt(url: string): Promise<RawResponse> {
+  let res: RawResponse | null = null;
+  let fetchErr: unknown = null;
+
   try {
-    res = await fetchViaHttp2(url);
-    // h2 로 403/429 가 오면 fetch 로 한 번 더
-    if (res.status === 403 || res.status === 429) throw new Error(`HTTP ${res.status}`);
-  } catch {
     res = await fetchViaFetch(url);
+    if (res.status !== 403 && res.status !== 429) return res;
+  } catch (e) {
+    fetchErr = e;
   }
 
-  if (res.status < 200 || res.status >= 300) {
-    throw new Error(`HTTP ${res.status} — ${url}`);
+  // 여기까지 왔다는 건 fetch 가 막혔거나 실패했다는 뜻
+  try {
+    return await fetchViaHttp2(url);
+  } catch (h2err) {
+    if (res) return res; // http2 도 안 되면 fetch 의 403 응답이라도 반환
+    throw fetchErr ?? h2err;
   }
-  return decode(decompress(res.body, res.encoding), res.contentType);
+}
+
+/**
+ * 목록 페이지 HTML 을 문자열로. 실패하면 예외를 던집니다.
+ * 커뮤니티 서버는 순간적으로 느려지는 일이 잦아 1회 재시도합니다.
+ */
+export async function fetchHtml(url: string, retries = 1): Promise<string> {
+  let lastErr: unknown;
+
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const res = await attempt(url);
+      if (res.status < 200 || res.status >= 300) {
+        throw new Error(`HTTP ${res.status} — ${url}`);
+      }
+      return decode(decompress(res.body, res.encoding), res.contentType);
+    } catch (e) {
+      lastErr = e;
+      if (i < retries) await sleep(2_000);
+    }
+  }
+
+  const msg = lastErr instanceof Error ? lastErr.message : String(lastErr);
+  throw new Error(`${msg} — ${url}`);
 }

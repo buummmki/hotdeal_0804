@@ -1,0 +1,40 @@
+name: 핫딜 수집
+
+# Vercel Hobby 플랜은 cron 을 하루 1회만 허용합니다.
+# 핫딜 사이트에는 턱없이 부족하므로 GitHub Actions 로 주기 호출합니다.
+#
+# 필요한 저장소 Secret (Settings → Secrets and variables → Actions):
+#   SITE_URL     예: https://hotdeal-0804.vercel.app   (끝에 / 없이)
+#   CRON_SECRET  Vercel 환경변수에 넣은 것과 동일한 값
+
+on:
+  schedule:
+    - cron: '*/20 * * * *' # 20분마다
+  workflow_dispatch: # 수동 실행 버튼
+
+concurrency:
+  group: crawl
+  cancel-in-progress: false
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 수집 트리거
+        run: |
+          code=$(curl -sS -m 120 -o /tmp/out.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.SITE_URL }}/api/cron/crawl")
+          echo "HTTP $code"
+          cat /tmp/out.json || true
+          echo
+          test "$code" = "200"
+
+      - name: 랭킹 재계산
+        run: |
+          code=$(curl -sS -m 60 -o /tmp/rescore.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.SITE_URL }}/api/cron/rescore")
+          echo "HTTP $code"
+          cat /tmp/rescore.json || true
