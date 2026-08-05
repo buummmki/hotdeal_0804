@@ -6,6 +6,7 @@ import { categoryLabel } from '@/lib/types';
 import { formatPrice, timeAgo, fullDate } from '@/lib/format';
 import { SourceBadge, StatusBadge, FreeShipBadge } from '@/components/Badges';
 import DealCard from '@/components/DealCard';
+import { SITE } from '@/lib/site';
 
 export const revalidate = 120;
 
@@ -64,20 +65,47 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
 
   const jsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'Product',
-    name: deal.title,
-    image: deal.image_url ?? undefined,
-    description: deal.summary ?? undefined,
-    offers: {
-      '@type': 'Offer',
-      price: deal.price_value ?? undefined,
-      priceCurrency: deal.currency ?? 'KRW',
-      availability:
-        deal.status === 'normal'
-          ? 'https://schema.org/InStock'
-          : 'https://schema.org/OutOfStock',
-      url: deal.source_url,
-    },
+    '@graph': [
+      {
+        '@type': 'Product',
+        name: deal.title,
+        image: deal.image_url ?? undefined,
+        description: deal.summary ?? undefined,
+        category: categoryLabel(deal.category),
+        offers: {
+          '@type': 'Offer',
+          price: deal.price_value ?? undefined,
+          priceCurrency: deal.currency ?? 'KRW',
+          availability:
+            deal.status === 'normal'
+              ? 'https://schema.org/InStock'
+              : 'https://schema.org/OutOfStock',
+          url: deal.source_url,
+          ...(deal.shipping_free
+            ? {
+                shippingDetails: {
+                  '@type': 'OfferShippingDetails',
+                  shippingRate: { '@type': 'MonetaryAmount', value: 0, currency: 'KRW' },
+                },
+              }
+            : {}),
+        },
+      },
+      // 검색결과에 계층 경로가 노출되고, AI 답변엔진이 문서 맥락을 잡는 데도 쓰입니다.
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: SITE.name, item: SITE.url },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: categoryLabel(deal.category),
+            item: `${SITE.url}/?cat=${deal.category}`,
+          },
+          { '@type': 'ListItem', position: 3, name: deal.title },
+        ],
+      },
+    ],
   };
 
   return (

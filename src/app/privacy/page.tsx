@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: '개인정보 처리방침 및 면책조항',
-  description: '핫딜모아의 개인정보 처리방침과 면책 안내입니다.',
+  description: '온누리 할인정보의 개인정보 처리방침과 면책 안내입니다.',
 };
 
 export default function PrivacyPage() {

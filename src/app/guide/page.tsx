@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: '이용안내',
-  description: '핫딜모아 서비스 이용 방법과 데이터 수집 원칙을 안내합니다.',
+  description: '온누리 할인정보 서비스 이용 방법과 데이터 수집 원칙을 안내합니다.',
 };
 
 export default function GuidePage() {

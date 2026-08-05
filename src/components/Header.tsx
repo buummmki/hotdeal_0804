@@ -80,8 +80,12 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-bg/85 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
-        <Link href="/" className="shrink-0 text-lg font-extrabold tracking-tight">
-          핫딜<span className="text-accent">모아</span>
+        <Link
+          href="/"
+          className="shrink-0 text-lg font-extrabold tracking-tight"
+          aria-label="온누리 할인정보 홈"
+        >
+          온누리<span className="text-accent"> 할인정보</span>
         </Link>
         <div className="hidden flex-1 sm:flex">
           <SearchBar />
