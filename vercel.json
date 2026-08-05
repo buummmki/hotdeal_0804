@@ -1,4 +1,6 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": ["icn1"],
   "crons": [
     { "path": "/api/cron/crawl", "schedule": "0 0 * * *" },
     { "path": "/api/cron/rescore", "schedule": "0 12 * * *" }

@@ -12,11 +12,10 @@ const DUPLICATE_THRESHOLD = 0.62;
  *  1) (source_id, external_id) 유니크 → DB 제약이 처리
  *  2) 최근 48시간 내 다른 출처의 유사 제목 → 스킵
  */
-async function isDuplicate(
-  db: ReturnType<typeof serviceClient>,
+function isDuplicate(
   deal: NormalizedDeal,
-  recentTitles: { id: string; title_norm: string; price_value: number | null }[]
-): Promise<boolean> {
+  recentTitles: { title_norm: string; price_value: number | null }[]
+): boolean {
   const norm = normalizeTitle(deal.title);
   if (norm.length < 6) return false;
 
@@ -69,11 +68,11 @@ export async function crawlSource(
     const since = new Date(Date.now() - 48 * 3600_000).toISOString();
     const { data: recent } = await db
       .from('deal')
-      .select('id, title_norm, price_value')
+      .select('title_norm, price_value')
       .gte('published_at', since)
       .limit(2000);
 
-    const recentTitles = (recent ?? []) as { id: string; title_norm: string; price_value: number | null }[];
+    const recentTitles = (recent ?? []) as { title_norm: string; price_value: number | null }[];
 
     const deals = items.map((item) => normalize(item, source.id, source.category_map ?? {}));
 
@@ -94,6 +93,10 @@ export async function crawlSource(
         .map((r) => [r.external_id, r])
     );
 
+    // 왕복 횟수를 줄이려고 신규 insert 와 댓글 스냅샷은 모아서 한 번에 보낸다.
+    const toInsert: NormalizedDeal[] = [];
+    const snapshots: { deal_id: string; comment_count: number }[] = [];
+
     for (const deal of deals) {
       const existing = existingMap.get(deal.external_id);
 
@@ -113,10 +116,7 @@ export async function crawlSource(
             })
             .eq('id', existing.id);
 
-          await db.from('comment_snapshot').insert({
-            deal_id: existing.id,
-            comment_count: deal.comment_count,
-          });
+          snapshots.push({ deal_id: existing.id, comment_count: deal.comment_count });
           base.updated++;
         } else {
           base.skipped++;
@@ -124,28 +124,32 @@ export async function crawlSource(
         continue;
       }
 
-      if (await isDuplicate(db, deal, recentTitles)) {
+      if (isDuplicate(deal, recentTitles)) {
         base.skipped++;
         continue;
       }
 
-      const { data: inserted, error } = await db
-        .from('deal')
-        .insert(deal)
-        .select('id, title_norm, price_value')
-        .single();
+      toInsert.push(deal);
+      // 같은 배치 안의 뒤쪽 항목과도 중복 비교가 되도록 미리 넣어둔다
+      recentTitles.push({
+        title_norm: normalizeTitle(deal.title),
+        price_value: deal.price_value,
+      });
+    }
 
+    if (toInsert.length) {
+      const { data: inserted, error } = await db.from('deal').insert(toInsert).select('id');
       if (error) {
-        base.skipped++;
+        base.skipped += toInsert.length;
         base.status = 'partial';
         base.message = error.message;
-        continue;
+      } else {
+        base.inserted = inserted?.length ?? toInsert.length;
       }
+    }
 
-      base.inserted++;
-      if (inserted) {
-        recentTitles.push(inserted as { id: string; title_norm: string; price_value: number | null });
-      }
+    if (snapshots.length) {
+      await db.from('comment_snapshot').insert(snapshots);
     }
 
     await db
