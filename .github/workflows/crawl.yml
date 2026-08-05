@@ -1,16 +1,20 @@
 name: 핫딜 수집
 
-# Vercel Hobby 플랜은 cron 을 하루 1회만 허용합니다.
-# 핫딜 사이트에는 턱없이 부족하므로 GitHub Actions 로 주기 호출합니다.
+# 정기 수집은 Vercel 기본 cron(vercel.json, 하루 1회)이 담당합니다.
+# 이 워크플로는 "지금 당장 한 번 돌리고 싶을 때" 쓰는 수동 실행용입니다.
 #
-# 필요한 저장소 Secret (Settings → Secrets and variables → Actions):
-#   SITE_URL     예: https://hotdeal-0804.vercel.app   (끝에 / 없이)
+# 쓰려면 저장소 Secret 2개가 필요합니다
+# (Settings → Secrets and variables → Actions):
+#   SITE_URL     https://hotdeal-aggregator-dun.vercel.app   (끝에 / 없이)
 #   CRON_SECRET  Vercel 환경변수에 넣은 것과 동일한 값
+#
+# 하루 1회보다 자주 돌리고 싶어지면 아래 schedule 주석을 풀면 됩니다.
+# (Vercel Pro 로 올리지 않고 주기를 늘리는 무료 우회책)
 
 on:
-  schedule:
-    - cron: '*/20 * * * *' # 20분마다
-  workflow_dispatch: # 수동 실행 버튼
+  workflow_dispatch: # Actions 탭에서 수동 실행
+  # schedule:
+  #   - cron: '*/20 * * * *'
 
 concurrency:
   group: crawl

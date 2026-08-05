@@ -5,10 +5,7 @@ import { normalize, normalizeTitle, similarity, viewScoresFor } from './normaliz
 import type { CrawlResult, NormalizedDeal } from './types';
 import type { Source } from '@/lib/types';
 
-const POLITE_DELAY_MS = 1_500;
 const DUPLICATE_THRESHOLD = 0.62;
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
  * 중복 판별
@@ -36,7 +33,11 @@ async function isDuplicate(
   return false;
 }
 
-export async function crawlSource(source: Source): Promise<CrawlResult> {
+export async function crawlSource(
+  source: Source,
+  /** crawlAll 이 미리 병렬로 받아둔 HTML. 없으면 여기서 직접 받는다. */
+  prefetchedHtml?: string
+): Promise<CrawlResult> {
   const started = Date.now();
   const base: CrawlResult = {
     sourceId: source.id,
@@ -55,7 +56,7 @@ export async function crawlSource(source: Source): Promise<CrawlResult> {
   const db = serviceClient();
 
   try {
-    const html = await fetchHtml(source.list_url);
+    const html = prefetchedHtml ?? (await fetchHtml(source.list_url));
     const items = parser.parseList(html, source.base_url);
     base.found = items.length;
 
@@ -180,16 +181,39 @@ async function logCrawl(db: ReturnType<typeof serviceClient>, r: CrawlResult) {
   });
 }
 
-/** 활성 소스를 순회하며 수집. 소스 간 간격을 둬서 부하를 주지 않음. */
+/**
+ * 활성 소스 전체 수집.
+ *
+ * Vercel Hobby 의 함수 실행 제한이 60초인데, 순차 실행하면 소스당 14~18초가 들어
+ * 3개만 돼도 54초로 한계에 붙는다(로컬에선 3초인데 Vercel 리전이 미국이라 느림).
+ * 그래서 느린 쪽인 HTML 요청만 병렬로 먼저 받고, DB 반영은 순차로 처리한다.
+ *
+ * 요청을 병렬로 보내도 사이트마다 도메인이 달라 개별 사이트 입장에선 동시 요청이
+ * 1건뿐이므로 부하 문제는 없다.
+ */
 export async function crawlAll(): Promise<CrawlResult[]> {
   const db = serviceClient();
   const { data, error } = await db.from('source').select('*').eq('is_active', true);
   if (error) throw new Error(`소스 조회 실패: ${error.message}`);
 
+  const sources = (data ?? []) as Source[];
+
+  // 1) HTML 병렬 수신 (실패해도 여기서 죽지 않게 결과를 그대로 담아둔다)
+  const pages = await Promise.all(
+    sources.map(async (s) => {
+      if (!s.list_url) return { source: s, html: undefined as string | undefined };
+      try {
+        return { source: s, html: await fetchHtml(s.list_url) };
+      } catch {
+        return { source: s, html: undefined as string | undefined };
+      }
+    })
+  );
+
+  // 2) DB 반영은 순차로 — 소스 간 중복 판별이 직전 소스의 결과를 봐야 하므로
   const results: CrawlResult[] = [];
-  for (const source of (data ?? []) as Source[]) {
-    results.push(await crawlSource(source));
-    await sleep(POLITE_DELAY_MS);
+  for (const { source, html } of pages) {
+    results.push(await crawlSource(source, html));
   }
   return results;
 }
