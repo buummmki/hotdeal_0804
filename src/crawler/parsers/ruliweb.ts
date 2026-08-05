@@ -1,6 +1,6 @@
 import * as cheerio from 'cheerio';
 import type { Parser, RawItem } from '../types';
-import { absoluteUrl, parseCount, parseKoreanDate, cleanText, dedupeById } from './helpers';
+import { absoluteUrl, parseCount, parseViewCount, parseKoreanDate, cleanText, dedupeById } from './helpers';
 
 /**
  * 루리웹 예판/할인 정보 게시판 파서
@@ -24,6 +24,7 @@ const SELECTORS = {
   category: 'td.divsn a, td.divsn',
   comment: 'a.num_reply, .num_reply',
   date: 'td.time',
+  views: 'td.hit',
 };
 
 export const ruliweb: Parser = {
@@ -60,6 +61,7 @@ export const ruliweb: Parser = {
         commentCount: parseCount(
           link.find('.num_reply').first().text() || row.find(SELECTORS.comment).first().text()
         ),
+        viewCount: parseViewCount(row.find(SELECTORS.views).first().text()),
         publishedAt: parseKoreanDate(cleanText(row.find(SELECTORS.date).first().text())),
         soldout: /품절|종료|마감/.test(title),
       });

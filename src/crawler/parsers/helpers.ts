@@ -16,6 +16,21 @@ export function parseCount(text: string | undefined): number {
 }
 
 /**
+ * 조회수 파싱. "1314", "1.5k", "4.6 M", "12,345" 모두 지원.
+ * 퀘이사존은 1000 이상을 "1.5k" 로, 클리앙은 "4.6 M" 으로 축약해 표기합니다.
+ */
+export function parseViewCount(text: string | undefined): number {
+  if (!text) return 0;
+  const t = text.replace(/\s+/g, '').toLowerCase();
+  const m = t.match(/([\d,.]+)\s*([km])?/);
+  if (!m) return 0;
+  const n = Number(m[1].replace(/,/g, ''));
+  if (!Number.isFinite(n)) return 0;
+  const mult = m[2] === 'm' ? 1_000_000 : m[2] === 'k' ? 1_000 : 1;
+  return Math.round(n * mult);
+}
+
+/**
  * 커뮤니티 목록의 시간 표기 파싱.
  *
  *  "2026-08-04 07:35:40" → 그대로 (시각 보존)

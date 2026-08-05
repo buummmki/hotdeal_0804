@@ -113,6 +113,39 @@ export function extractTags(title: string): string[] {
 }
 
 // ------------------------------------------------------------
+// 조회수 → view_score (0~100)
+//
+//  사이트마다 트래픽 규모가 10배 이상 차이나므로(뽐뿌 1만 vs 퀘이사존 500)
+//  조회수 절대값을 그대로 쓰면 소스 간 비교가 무의미해집니다.
+//  같은 소스의 같은 수집 배치 안에서 상대화하고, 조회수 분포가 롱테일이므로
+//  로그 스케일을 씁니다. 기준점은 배치의 90퍼센타일.
+// ------------------------------------------------------------
+export function percentile(values: number[], p: number): number {
+  const v = values.filter((x) => x > 0).sort((a, b) => a - b);
+  if (!v.length) return 0;
+  return v[Math.min(v.length - 1, Math.floor((v.length - 1) * p))];
+}
+
+/**
+ * 한 배치의 조회수를 0~100 으로 환산.
+ *  배치의 P10 을 0점, P90 을 100점으로 두고 로그 스케일에서 선형 보간.
+ *  (0 기준으로 잡으면 조회수 5회짜리도 20점대가 나와 변별력이 없어짐)
+ */
+export function viewScoresFor(items: { viewCount?: number }[]): number[] {
+  const counts = items.map((i) => i.viewCount ?? 0);
+  const lo = Math.log(1 + percentile(counts, 0.1));
+  const hi = Math.log(1 + percentile(counts, 0.9));
+  const span = hi - lo;
+
+  return counts.map((c) => {
+    if (!c || c <= 0) return 0;
+    if (span <= 0.01) return 50; // 조회수가 사실상 균일하면 중간값
+    const s = ((Math.log(1 + c) - lo) / span) * 100;
+    return Math.round(Math.min(100, Math.max(0, s)));
+  });
+}
+
+// ------------------------------------------------------------
 // 상태 판정
 // ------------------------------------------------------------
 export function detectStatus(item: RawItem): 'normal' | 'soldout' | 'expired' {
@@ -151,6 +184,7 @@ export function normalize(
     tags: extractTags(item.title),
     image_url: item.imageUrl ?? null,
     comment_count: item.commentCount ?? 0,
+    view_score: 0, // 배치 단위로 계산되므로 pipeline 에서 채운다
     status: detectStatus(item),
     published_at: (item.publishedAt ?? new Date()).toISOString(),
     collected_at: now,

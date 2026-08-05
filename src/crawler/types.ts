@@ -14,6 +14,8 @@ export interface RawItem {
   priceText?: string;
   /** 목록에 배송비가 별도 필드로 노출되는 경우 */
   shippingText?: string;
+  /** 목록의 조회수. 랭킹의 view_score 산출에 사용 */
+  viewCount?: number;
 }
 
 /** DB insert 직전 형태 */
@@ -31,6 +33,8 @@ export interface NormalizedDeal {
   tags: string[];
   image_url: string | null;
   comment_count: number;
+  /** 0~100. 같은 소스 배치 내 상대값 (사이트마다 트래픽 규모가 달라 절대값은 비교 불가) */
+  view_score: number;
   status: 'normal' | 'soldout' | 'expired';
   published_at: string;
   collected_at: string;

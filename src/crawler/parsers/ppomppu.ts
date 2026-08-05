@@ -1,6 +1,6 @@
 import * as cheerio from 'cheerio';
 import type { Parser, RawItem } from '../types';
-import { absoluteUrl, parseCount, parseKoreanDate, cleanText, dedupeById } from './helpers';
+import { absoluteUrl, parseCount, parseViewCount, parseKoreanDate, cleanText, dedupeById } from './helpers';
 
 /**
  * 뽐뿌 뽐뿌게시판 목록 파서
@@ -32,6 +32,7 @@ const SELECTORS = {
   dateCell: 'td[title]',
   time: 'time.baseList-time',
   thumb: 'a.baseList-thumb img',
+  views: 'td.baseList-views',
 };
 
 export const ppomppu: Parser = {
@@ -71,6 +72,7 @@ export const ppomppu: Parser = {
         rawCategory:
           cleanText(row.find(SELECTORS.category).first().text()).replace(/[[\]]/g, '') || undefined,
         commentCount: parseCount(row.find(SELECTORS.comment).first().text()),
+        viewCount: parseViewCount(row.find(SELECTORS.views).first().text()),
         publishedAt: parseKoreanDate(dateText),
         imageUrl: thumb && !/noimage/i.test(thumb) ? absoluteUrl(thumb, baseUrl) : undefined,
         soldout: /종료|품절|마감/.test(title),

@@ -1,7 +1,7 @@
 import { serviceClient } from '@/lib/supabase';
 import { fetchHtml } from './http';
 import { getParser } from './parsers';
-import { normalize, normalizeTitle, similarity } from './normalize';
+import { normalize, normalizeTitle, similarity, viewScoresFor } from './normalize';
 import type { CrawlResult, NormalizedDeal } from './types';
 import type { Source } from '@/lib/types';
 
@@ -76,15 +76,20 @@ export async function crawlSource(source: Source): Promise<CrawlResult> {
 
     const deals = items.map((item) => normalize(item, source.id, source.category_map ?? {}));
 
+    // 조회수는 사이트별 스케일이 달라 배치 안에서 상대화 (P90 = 100점 기준)
+    const vs = viewScoresFor(items);
+    deals.forEach((d, i) => { d.view_score = vs[i]; });
+
     // 기존 글 조회를 건당 1쿼리 → 소스당 1쿼리로. (Vercel maxDuration 60초 대응)
     const { data: existingRows } = await db
       .from('deal')
-      .select('id, external_id, comment_count, status')
+      .select('id, external_id, comment_count, status, view_score')
       .eq('source_id', source.id)
       .in('external_id', deals.map((d) => d.external_id));
 
     const existingMap = new Map(
-      ((existingRows ?? []) as { id: string; external_id: string; comment_count: number; status: string }[])
+      ((existingRows ?? []) as
+        { id: string; external_id: string; comment_count: number; status: string; view_score: number }[])
         .map((r) => [r.external_id, r])
     );
 
@@ -93,12 +98,15 @@ export async function crawlSource(source: Source): Promise<CrawlResult> {
 
       if (existing) {
         const changed =
-          existing.comment_count !== deal.comment_count || existing.status !== deal.status;
+          existing.comment_count !== deal.comment_count ||
+          existing.status !== deal.status ||
+          existing.view_score !== deal.view_score;
         if (changed) {
           await db
             .from('deal')
             .update({
               comment_count: deal.comment_count,
+              view_score: deal.view_score,
               status: deal.status,
               checked_at: deal.checked_at,
             })

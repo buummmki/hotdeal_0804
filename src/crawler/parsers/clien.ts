@@ -1,6 +1,6 @@
 import * as cheerio from 'cheerio';
 import type { Parser, RawItem } from '../types';
-import { absoluteUrl, parseCount, parseKoreanDate, cleanText, dedupeById } from './helpers';
+import { absoluteUrl, parseCount, parseViewCount, parseKoreanDate, cleanText, dedupeById } from './helpers';
 
 /**
  * 클리앙 알뜰구매 게시판 파서
@@ -34,6 +34,7 @@ const SELECTORS = {
   keyword: 'a.icon_keyword',
   soldFlag: 'span.icon_info',
   thumb: '.list_thumbnail img',
+  views: '.list_hit .hit',
 };
 
 export const clien: Parser = {
@@ -78,6 +79,7 @@ export const clien: Parser = {
         url: absoluteUrl(href.split('?')[0], baseUrl),
         rawCategory: cleanText(row.find(SELECTORS.keyword).first().text()) || undefined,
         commentCount,
+        viewCount: parseViewCount(row.find(SELECTORS.views).first().text()),
         publishedAt: parseKoreanDate(dateText),
         imageUrl: thumb && !/noimage/i.test(thumb) ? absoluteUrl(thumb, baseUrl) : undefined,
         soldout: row.hasClass('sold_out') || /품절|종료|마감/.test(soldFlag),

@@ -1,6 +1,6 @@
 import * as cheerio from 'cheerio';
 import type { Parser, RawItem } from '../types';
-import { absoluteUrl, parseCount, parseKoreanDate, cleanText, dedupeById } from './helpers';
+import { absoluteUrl, parseCount, parseViewCount, parseKoreanDate, cleanText, dedupeById } from './helpers';
 
 /**
  * 퀘이사존 지름/할인정보 게시판 파서
@@ -42,6 +42,7 @@ const SELECTORS = {
   category: '.market-info-sub .category',
   price: '.market-info-sub .text-orange',
   thumb: '.thumb-wrap img.maxImg, .thumb-wrap img',
+  views: '.market-info-sub .count',
 };
 
 export const quasar: Parser = {
@@ -58,6 +59,7 @@ export const quasar: Parser = {
       const href = link.attr('href');
       const title = cleanText(link.find(SELECTORS.titleText).text()) || cleanText(link.text());
       if (!href || !title || title.length < 4) return;
+      if (/블라인드\s*처리된\s*글/.test(title)) return; // 신고 누적으로 가려진 글
 
       const externalId = href.match(/views\/(\d+)/)?.[1] ?? href.match(/(\d+)\/?$/)?.[1];
       if (!externalId) return;
@@ -84,6 +86,7 @@ export const quasar: Parser = {
         url: absoluteUrl(href, baseUrl),
         rawCategory: cleanText(row.find(SELECTORS.category).first().text()) || undefined,
         commentCount: parseCount(row.find(SELECTORS.comment).first().text()),
+        viewCount: parseViewCount(row.find(SELECTORS.views).first().text()),
         publishedAt: parseKoreanDate(cleanText(row.find(SELECTORS.date).first().text())),
         imageUrl: thumb && !thumb.startsWith('data:') ? absoluteUrl(thumb, baseUrl) : undefined,
         soldout: /종료|품절|마감/.test(label),
