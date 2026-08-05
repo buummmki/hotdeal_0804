@@ -2,18 +2,9 @@
 
 import { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
+import { ADSENSE_CLIENT, isValidSlot } from '@/lib/ads';
 
-// 환경변수는 붙여넣기 과정에서 앞뒤 공백이 섞이기 쉬우므로 항상 다듬어 쓴다.
-const CLIENT = (process.env.NEXT_PUBLIC_ADSENSE_CLIENT ?? '').trim();
-
-/**
- * AdSense 슬롯 ID 는 항상 숫자 문자열입니다.
- * 자리표시자나 오타가 들어가면 잘못된 광고 요청이 나가 빈 자리만 남으므로,
- * 형식이 맞지 않으면 아예 렌더링하지 않습니다.
- */
-function isValidSlot(slot?: string): slot is string {
-  return !!slot && /^\d{6,}$/.test(slot.trim());
-}
+const CLIENT = ADSENSE_CLIENT ?? '';
 
 type Props = {
   /** AdSense 에서 광고 단위를 만들면 나오는 data-ad-slot 값 */
@@ -109,14 +100,3 @@ export default function AdSlot({
     </div>
   );
 }
-
-/** 슬롯 ID 를 환경변수로 관리 — AdSense 에서 단위를 만든 뒤 채우면 됩니다 */
-const clean = (v?: string) => v?.trim() || undefined;
-
-export const AD_SLOTS = {
-  feed: clean(process.env.NEXT_PUBLIC_AD_SLOT_FEED),
-  /** 인피드 단위를 만들면 슬롯 ID 와 함께 나오는 data-ad-layout-key */
-  feedLayoutKey: clean(process.env.NEXT_PUBLIC_AD_LAYOUT_KEY_FEED),
-  sidebar: clean(process.env.NEXT_PUBLIC_AD_SLOT_SIDEBAR),
-  detail: clean(process.env.NEXT_PUBLIC_AD_SLOT_DETAIL),
-};

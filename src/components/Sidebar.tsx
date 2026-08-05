@@ -1,5 +1,6 @@
 import { DealRow } from './DealCard';
-import AdSlot, { AD_SLOTS } from './AdSlot';
+import AdSlot from './AdSlot';
+import { AD_SLOTS } from '@/lib/ads';
 import type { DealWithSource } from '@/lib/types';
 
 function Block({

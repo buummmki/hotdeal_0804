@@ -7,7 +7,8 @@ import Sidebar from '@/components/Sidebar';
 import Pagination from '@/components/Pagination';
 import { CategoryTabs, SortTabs } from '@/components/Tabs';
 import MockNotice from '@/components/MockNotice';
-import AdSlot, { AD_SLOTS } from '@/components/AdSlot';
+import AdSlot from '@/components/AdSlot';
+import { AD_SLOTS } from '@/lib/ads';
 
 export const revalidate = 60;
 

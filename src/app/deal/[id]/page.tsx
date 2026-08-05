@@ -6,7 +6,8 @@ import { categoryLabel } from '@/lib/types';
 import { formatPrice, timeAgo, fullDate } from '@/lib/format';
 import { SourceBadge, StatusBadge, FreeShipBadge } from '@/components/Badges';
 import DealCard from '@/components/DealCard';
-import AdSlot, { AD_SLOTS } from '@/components/AdSlot';
+import AdSlot from '@/components/AdSlot';
+import { AD_SLOTS } from '@/lib/ads';
 import { SITE } from '@/lib/site';
 
 export const revalidate = 120;
