@@ -6,7 +6,7 @@ import './globals.css';
 import Header from '@/components/Header';
 import { SITE, siteJsonLd } from '@/lib/site';
 
-const adsenseClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
+const adsenseClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT?.trim();
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),

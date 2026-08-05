@@ -3,7 +3,8 @@
 import { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 
-const CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT ?? '';
+// 환경변수는 붙여넣기 과정에서 앞뒤 공백이 섞이기 쉬우므로 항상 다듬어 쓴다.
+const CLIENT = (process.env.NEXT_PUBLIC_ADSENSE_CLIENT ?? '').trim();
 
 /**
  * AdSense 슬롯 ID 는 항상 숫자 문자열입니다.
@@ -91,7 +92,7 @@ export default function AdSlot({
           className="adsbygoogle"
           style={{ display: 'inline-block', width: fixed.width, height: fixed.height }}
           data-ad-client={CLIENT}
-          data-ad-slot={slot}
+          data-ad-slot={slot.trim()}
         />
       ) : (
         <ins
@@ -99,7 +100,7 @@ export default function AdSlot({
           className="adsbygoogle block"
           style={{ display: 'block', minHeight }}
           data-ad-client={CLIENT}
-          data-ad-slot={slot}
+          data-ad-slot={slot.trim()}
           data-ad-format={format}
           data-ad-layout-key={layoutKey}
           data-full-width-responsive="true"
@@ -110,10 +111,12 @@ export default function AdSlot({
 }
 
 /** 슬롯 ID 를 환경변수로 관리 — AdSense 에서 단위를 만든 뒤 채우면 됩니다 */
+const clean = (v?: string) => v?.trim() || undefined;
+
 export const AD_SLOTS = {
-  feed: process.env.NEXT_PUBLIC_AD_SLOT_FEED,
+  feed: clean(process.env.NEXT_PUBLIC_AD_SLOT_FEED),
   /** 인피드 단위를 만들면 슬롯 ID 와 함께 나오는 data-ad-layout-key */
-  feedLayoutKey: process.env.NEXT_PUBLIC_AD_LAYOUT_KEY_FEED,
-  sidebar: process.env.NEXT_PUBLIC_AD_SLOT_SIDEBAR,
-  detail: process.env.NEXT_PUBLIC_AD_SLOT_DETAIL,
+  feedLayoutKey: clean(process.env.NEXT_PUBLIC_AD_LAYOUT_KEY_FEED),
+  sidebar: clean(process.env.NEXT_PUBLIC_AD_SLOT_SIDEBAR),
+  detail: clean(process.env.NEXT_PUBLIC_AD_SLOT_DETAIL),
 };
