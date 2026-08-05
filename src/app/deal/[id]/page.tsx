@@ -6,6 +6,7 @@ import { categoryLabel } from '@/lib/types';
 import { formatPrice, timeAgo, fullDate } from '@/lib/format';
 import { SourceBadge, StatusBadge, FreeShipBadge } from '@/components/Badges';
 import DealCard from '@/components/DealCard';
+import AdSlot, { AD_SLOTS } from '@/components/AdSlot';
 import { SITE } from '@/lib/site';
 
 export const revalidate = 120;
@@ -219,6 +220,10 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
           확인하세요.
         </p>
       </article>
+
+      {/* 본문을 다 읽은 뒤, 관련 딜로 넘어가기 직전. 원문 링크 버튼과 충분히
+          떨어져 있어야 오클릭으로 오해받지 않습니다. */}
+      <AdSlot slot={AD_SLOTS.detail} minHeight={280} className="!mt-6" />
 
       {related.length > 0 && (
         <section className="mt-6">

@@ -1,9 +1,12 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import Link from 'next/link';
+import Script from 'next/script';
 import './globals.css';
 import Header from '@/components/Header';
 import { SITE, siteJsonLd } from '@/lib/site';
+
+const adsenseClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
@@ -55,6 +58,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
+        {/* AdSense 로더. 페이지 렌더링을 막지 않도록 afterInteractive 로 붙입니다. */}
+        {adsenseClient && (
+          <Script
+            id="adsbygoogle-init"
+            async
+            strategy="afterInteractive"
+            crossOrigin="anonymous"
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`}
+          />
+        )}
         <Suspense fallback={<div className="h-[57px] border-b border-line" />}>
           <Header />
         </Suspense>

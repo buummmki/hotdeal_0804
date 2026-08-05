@@ -1,4 +1,4 @@
-import { Suspense } from 'react';
+import { Fragment, Suspense } from 'react';
 import { listDeals, hotDeals, latestDeals, mostCommented } from '@/lib/queries';
 import { categoryLabel } from '@/lib/types';
 import type { SortKey } from '@/lib/types';
@@ -7,6 +7,7 @@ import Sidebar from '@/components/Sidebar';
 import Pagination from '@/components/Pagination';
 import { CategoryTabs, SortTabs } from '@/components/Tabs';
 import MockNotice from '@/components/MockNotice';
+import AdSlot, { AD_SLOTS } from '@/components/AdSlot';
 
 export const revalidate = 60;
 
@@ -58,11 +59,17 @@ export default async function HomePage({
           ) : (
             <div className="space-y-2.5">
               {list.deals.map((d, i) => (
-                <DealCard
-                  key={d.id}
-                  deal={d}
-                  rank={sort === 'rank' ? (page - 1) * PER_PAGE + i + 1 : undefined}
-                />
+                <Fragment key={d.id}>
+                  <DealCard
+                    deal={d}
+                    rank={sort === 'rank' ? (page - 1) * PER_PAGE + i + 1 : undefined}
+                  />
+                  {/* 인피드 광고: 스크롤 흐름상 자연스럽고 클릭률이 가장 높은 위치.
+                      카드와 겹치지 않게 여백을 두고 '광고' 라벨을 답니다. */}
+                  {(i === 4 || i === 12) && (
+                    <AdSlot slot={AD_SLOTS.feed} format="fluid" minHeight={200} className="!my-5" />
+                  )}
+                </Fragment>
               ))}
             </div>
           )}

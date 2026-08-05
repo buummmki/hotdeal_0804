@@ -1,4 +1,5 @@
 import { DealRow } from './DealCard';
+import AdSlot, { AD_SLOTS } from './AdSlot';
 import type { DealWithSource } from '@/lib/types';
 
 function Block({
@@ -30,6 +31,9 @@ export default function Sidebar({
   return (
     <aside className="hidden w-[300px] shrink-0 space-y-3 lg:block">
       <Block title="실시간 인기" deals={hot.slice(0, 7)} />
+      {/* 첫 블록을 다 읽고 넘어가는 지점. 사이드바 상단 고정 광고보다
+          체류 후 노출이라 클릭 품질이 좋습니다. */}
+      <AdSlot slot={AD_SLOTS.sidebar} minHeight={250} className="!my-0" />
       <Block title="댓글 많은 딜" deals={commented.slice(0, 7)} />
       <Block title="방금 올라온 딜" deals={latest.slice(0, 7)} />
       <div className="rounded-xl border border-line bg-card p-4 text-[12px] leading-relaxed text-muted">
