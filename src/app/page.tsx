@@ -67,7 +67,14 @@ export default async function HomePage({
                   {/* 인피드 광고: 스크롤 흐름상 자연스럽고 클릭률이 가장 높은 위치.
                       카드와 겹치지 않게 여백을 두고 '광고' 라벨을 답니다. */}
                   {(i === 4 || i === 12) && (
-                    <AdSlot slot={AD_SLOTS.feed} format="fluid" minHeight={200} className="!my-5" />
+                    <AdSlot
+                      slot={AD_SLOTS.feed}
+                      format="fluid"
+                      layoutKey={AD_SLOTS.feedLayoutKey}
+                      minHeight={200}
+                      className="!my-5"
+                      variant={`${cat}-${sort}-${page}-${i}`}
+                    />
                   )}
                 </Fragment>
               ))}

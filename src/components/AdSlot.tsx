@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 
 const CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT ?? '';
 
@@ -14,6 +15,11 @@ type Props = {
   className?: string;
   /** 최소 높이. 광고 로드 전 레이아웃이 밀리는(CLS) 걸 막습니다 */
   minHeight?: number;
+  /**
+   * 같은 경로에서 목록 내용이 바뀔 때(카테고리·정렬·페이지) 새 광고를 받기 위한 구분값.
+   * 예: `${cat}-${sort}-${page}`
+   */
+  variant?: string;
 };
 
 /**
@@ -33,20 +39,30 @@ export default function AdSlot({
   layoutKey,
   className = '',
   minHeight = 280,
+  variant,
 }: Props) {
-  const pushed = useRef(false);
+  // 화면이 바뀌면 같은 ins 를 재사용하지 않고 새로 마운트해야 광고가 다시 뜬다.
+  //
+  // useSearchParams() 를 쓰면 이 컴포넌트를 쓰는 페이지 전체가 정적 생성에서
+  // 빠지므로, 쿼리 변화는 호출부가 variant 로 넘겨준다.
+  const pathname = usePathname();
+  const routeKey = `${pathname}|${variant ?? ''}`;
+
+  const pushedFor = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!CLIENT || !slot || pushed.current) return;
+    if (!CLIENT || !slot) return;
+    // 같은 화면에서 중복 push 하면 "already have ads in them" 오류가 난다
+    if (pushedFor.current === routeKey) return;
     try {
       const w = window as unknown as { adsbygoogle?: unknown[] };
       w.adsbygoogle = w.adsbygoogle || [];
       w.adsbygoogle.push({});
-      pushed.current = true;
+      pushedFor.current = routeKey;
     } catch {
       // 광고 차단기 등으로 실패해도 페이지 동작에는 영향이 없어야 함
     }
-  }, [slot]);
+  }, [slot, routeKey]);
 
   if (!CLIENT || !slot) return null;
 
@@ -54,6 +70,7 @@ export default function AdSlot({
     <div className={`my-4 ${className}`} aria-label="광고">
       <div className="mb-1 text-[11px] leading-none text-muted">광고</div>
       <ins
+        key={routeKey}
         className="adsbygoogle block"
         style={{ display: 'block', minHeight }}
         data-ad-client={CLIENT}
@@ -69,6 +86,8 @@ export default function AdSlot({
 /** 슬롯 ID 를 환경변수로 관리 — AdSense 에서 단위를 만든 뒤 채우면 됩니다 */
 export const AD_SLOTS = {
   feed: process.env.NEXT_PUBLIC_AD_SLOT_FEED,
+  /** 인피드 단위를 만들면 슬롯 ID 와 함께 나오는 data-ad-layout-key */
+  feedLayoutKey: process.env.NEXT_PUBLIC_AD_LAYOUT_KEY_FEED,
   sidebar: process.env.NEXT_PUBLIC_AD_SLOT_SIDEBAR,
   detail: process.env.NEXT_PUBLIC_AD_SLOT_DETAIL,
 };
