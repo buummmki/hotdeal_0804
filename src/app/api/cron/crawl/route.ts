@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { crawlAll, rescore } from '@/crawler/pipeline';
+import { crawlAll, purgeOldDeals, rescore } from '@/crawler/pipeline';
 
 export const runtime = 'nodejs'; // node:http2 를 쓰므로 edge 런타임 불가
 export const dynamic = 'force-dynamic';
@@ -19,6 +19,7 @@ export async function GET(req: Request) {
 
   try {
     const results = await crawlAll();
+    const purged = await purgeOldDeals();
     await rescore();
     const total = results.reduce(
       (a, r) => ({
@@ -29,7 +30,7 @@ export async function GET(req: Request) {
       }),
       { found: 0, inserted: 0, updated: 0, skipped: 0 }
     );
-    return NextResponse.json({ ok: true, total, results });
+    return NextResponse.json({ ok: true, total, purged, results });
   } catch (e) {
     return NextResponse.json(
       { ok: false, error: e instanceof Error ? e.message : String(e) },

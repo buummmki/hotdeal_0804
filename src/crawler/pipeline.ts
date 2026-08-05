@@ -222,6 +222,36 @@ export async function crawlAll(): Promise<CrawlResult[]> {
   return results;
 }
 
+/** 이 기간이 지난 딜은 DB 에서 삭제한다 (게시일 기준) */
+export const RETENTION_DAYS = Number(process.env.DEAL_RETENTION_DAYS ?? 14);
+
+/**
+ * 오래된 딜 정리.
+ *
+ * 수집만 하고 지우지 않으면 목록에서 내려간 딜이 DB 에 계속 남아
+ * 검색·카테고리 페이지에 죽은 링크로 노출된다. 하루 80건씩 쌓이므로
+ * 수집 때마다 한 번씩 훑어서 지운다.
+ *
+ * comment_snapshot 은 deal 에 on delete cascade 가 걸려 있어 같이 정리된다.
+ * 관리자가 고정한 딜(is_pinned)은 의도적으로 올려둔 것이므로 제외한다.
+ *
+ * @returns 삭제된 딜 수
+ */
+export async function purgeOldDeals(days = RETENTION_DAYS): Promise<number> {
+  const db = serviceClient();
+  const cutoff = new Date(Date.now() - days * 86_400_000).toISOString();
+
+  const { data, error } = await db
+    .from('deal')
+    .delete()
+    .lt('published_at', cutoff)
+    .eq('is_pinned', false)
+    .select('id');
+
+  if (error) throw new Error(`오래된 딜 정리 실패: ${error.message}`);
+  return data?.length ?? 0;
+}
+
 /** 랭킹 점수 재계산 */
 export async function rescore(): Promise<void> {
   const db = serviceClient();

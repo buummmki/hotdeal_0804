@@ -9,7 +9,7 @@ import { loadEnv } from './env';
 loadEnv();
 
 async function main() {
-  const { crawlAll, crawlSource, rescore } = await import('./pipeline');
+  const { crawlAll, crawlSource, purgeOldDeals, rescore, RETENTION_DAYS } = await import('./pipeline');
   const { serviceClient } = await import('@/lib/supabase');
 
   const only = process.argv[2];
@@ -24,6 +24,8 @@ async function main() {
     console.table([await crawlSource(data as never)]);
   } else {
     console.table(await crawlAll());
+    const purged = await purgeOldDeals();
+    console.log(`${RETENTION_DAYS}일 지난 딜 ${purged}건 정리`);
   }
 
   await rescore();
