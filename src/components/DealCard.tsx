@@ -24,6 +24,9 @@ function Thumb({ deal }: { deal: DealWithSource }) {
       src={deal.image_url}
       alt=""
       loading="lazy"
+      // 뽐뿌 CDN(cdn2.ppomppu.co.kr)은 외부 Referer 가 붙으면 302 로 튕기는
+      // 핫링크 차단이 걸려 있다. Referer 를 아예 안 보내면 정상 200.
+      referrerPolicy="no-referrer"
       className="h-full w-full object-cover"
     />
   );
