@@ -5,6 +5,15 @@ import { usePathname } from 'next/navigation';
 
 const CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT ?? '';
 
+/**
+ * AdSense 슬롯 ID 는 항상 숫자 문자열입니다.
+ * 자리표시자나 오타가 들어가면 잘못된 광고 요청이 나가 빈 자리만 남으므로,
+ * 형식이 맞지 않으면 아예 렌더링하지 않습니다.
+ */
+function isValidSlot(slot?: string): slot is string {
+  return !!slot && /^\d{6,}$/.test(slot.trim());
+}
+
 type Props = {
   /** AdSense 에서 광고 단위를 만들면 나오는 data-ad-slot 값 */
   slot?: string;
@@ -51,7 +60,7 @@ export default function AdSlot({
   const pushedFor = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!CLIENT || !slot) return;
+    if (!CLIENT || !isValidSlot(slot)) return;
     // 같은 화면에서 중복 push 하면 "already have ads in them" 오류가 난다
     if (pushedFor.current === routeKey) return;
     try {
@@ -64,7 +73,7 @@ export default function AdSlot({
     }
   }, [slot, routeKey]);
 
-  if (!CLIENT || !slot) return null;
+  if (!CLIENT || !isValidSlot(slot)) return null;
 
   return (
     <div className={`my-4 ${className}`} aria-label="광고">
