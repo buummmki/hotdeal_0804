@@ -83,14 +83,14 @@ export async function crawlSource(
     // 기존 글 조회를 건당 1쿼리 → 소스당 1쿼리로. (Vercel maxDuration 60초 대응)
     const { data: existingRows } = await db
       .from('deal')
-      .select('id, external_id, comment_count, status, view_score, published_at')
+      .select('id, external_id, comment_count, status, view_score, published_at, category')
       .eq('source_id', source.id)
       .in('external_id', deals.map((d) => d.external_id));
 
     const existingMap = new Map(
       ((existingRows ?? []) as
         { id: string; external_id: string; comment_count: number; status: string;
-          view_score: number; published_at: string }[])
+          view_score: number; published_at: string; category: string }[])
         .map((r) => [r.external_id, r])
     );
 
@@ -102,13 +102,14 @@ export async function crawlSource(
       const existing = existingMap.get(deal.external_id);
 
       if (existing) {
-        // published_at 도 함께 갱신한다. 원문 목록이 항상 정답이므로,
-        // 과거에 잘못 파싱된 값이 있어도 다음 수집에서 자동으로 교정된다.
+        // published_at·category 도 함께 갱신한다. 원문 목록과 분류 규칙이 항상
+        // 정답이므로, 과거에 잘못 저장된 값이 다음 수집에서 자동 교정된다.
         const changed =
           existing.comment_count !== deal.comment_count ||
           existing.status !== deal.status ||
           existing.view_score !== deal.view_score ||
-          existing.published_at !== deal.published_at;
+          existing.published_at !== deal.published_at ||
+          existing.category !== deal.category;
         if (changed) {
           await db
             .from('deal')
@@ -117,6 +118,7 @@ export async function crawlSource(
               view_score: deal.view_score,
               status: deal.status,
               published_at: deal.published_at,
+              category: deal.category,
               checked_at: deal.checked_at,
             })
             .eq('id', existing.id);

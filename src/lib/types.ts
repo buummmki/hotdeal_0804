@@ -61,15 +61,21 @@ export const SORTS: { key: SortKey; label: string }[] = [
   { key: 'price', label: '낮은 가격순' },
 ];
 
+/**
+ * 탭 노출 순서.
+ *
+ * 주 유입원인 네이버 블로그(생활·맛집 정보) 독자층이 50~60대 여성 중심이라,
+ * 식품·생활 카테고리를 앞에 두고 PC·게임처럼 관심도가 낮은 쪽을 뒤로 보냅니다.
+ */
 export const CATEGORIES: { slug: string; label: string }[] = [
   { slug: 'all', label: '전체' },
-  { slug: 'pc', label: 'PC/하드웨어' },
-  { slug: 'digital', label: '디지털' },
-  { slug: 'appliance', label: '가전' },
   { slug: 'food', label: '식품' },
   { slug: 'life', label: '생활/패션' },
-  { slug: 'game', label: '게임' },
+  { slug: 'appliance', label: '가전' },
   { slug: 'coupon', label: '쿠폰/상품권' },
+  { slug: 'digital', label: '디지털' },
+  { slug: 'pc', label: 'PC/하드웨어' },
+  { slug: 'game', label: '게임' },
   { slug: 'etc', label: '기타' },
 ];
 
