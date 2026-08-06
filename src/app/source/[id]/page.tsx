@@ -38,7 +38,8 @@ export default async function SourcePage({
 
   const sort = (sp.sort ?? 'latest') as SortKey;
   const page = Math.max(1, Number(sp.page ?? 1) || 1);
-  const list = await listDeals({ sourceId: id, sort, page, perPage: PER_PAGE });
+  // 출처별은 "그 커뮤니티 글을 훑어보러" 온 화면이라 기간 제한을 걸지 않는다
+  const list = await listDeals({ sourceId: id, sort, page, perPage: PER_PAGE, includeOld: true });
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-5">

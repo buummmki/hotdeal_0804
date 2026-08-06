@@ -1,5 +1,6 @@
 import { Fragment, Suspense } from 'react';
-import { listDeals, hotDeals, latestDeals, mostCommented } from '@/lib/queries';
+import Link from 'next/link';
+import { listDeals, hotDeals, latestDeals, mostCommented, FRESH_WINDOW_HOURS } from '@/lib/queries';
 import { categoryLabel } from '@/lib/types';
 import type { SortKey } from '@/lib/types';
 import DealCard from '@/components/DealCard';
@@ -94,6 +95,19 @@ export default async function HomePage({
             basePath="/"
             query={{ cat: cat === 'all' ? undefined : cat, sort: sort === 'rank' ? undefined : sort }}
           />
+
+          {/* 왜 오래된 딜이 안 보이는지 알려주지 않으면 "글이 없는 사이트"로 보인다 */}
+          <p className="mt-4 text-center text-[12px] leading-relaxed text-muted">
+            최근 {FRESH_WINDOW_HOURS}시간 안에 올라온 딜만 보여줍니다. 지난 딜은{' '}
+            <Link href="/search" className="underline hover:text-fg">
+              검색
+            </Link>
+            이나{' '}
+            <Link href="/source" className="underline hover:text-fg">
+              출처별 모아보기
+            </Link>
+            에서 찾을 수 있습니다.
+          </p>
 
           {/* 목록을 다 본 모바일 방문자에게 이어서 볼 거리 + 광고 */}
           <MobileCuration latest={latest} commented={commented} />

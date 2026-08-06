@@ -5,6 +5,16 @@ import type { DealWithSource, Source, SortKey } from './types';
 
 const SELECT = '*, source:source_id (id, name, color)';
 
+/**
+ * 기본 목록에 보여줄 최근 게시 기간(시간).
+ *
+ * 핫딜은 대개 하루 안에 끝나는데 수집은 하루 1회라, 기간 제한이 없으면
+ * 이미 종료된 딜이 절반 넘게 "판매 중"으로 남아 목록을 채웁니다.
+ * 방문자가 죽은 링크를 몇 번 만나면 다시 오지 않으므로 기본값을 좁게 잡습니다.
+ * 검색과 '지난 딜'에서는 이 제한 없이 전체를 봅니다.
+ */
+export const FRESH_WINDOW_HOURS = Number(process.env.DEAL_FRESH_WINDOW_HOURS ?? 72);
+
 export interface ListParams {
   category?: string;
   sourceId?: string;
@@ -12,6 +22,11 @@ export interface ListParams {
   page?: number;
   perPage?: number;
   query?: string;
+  /**
+   * true 면 기간 제한 없이 전체를 조회합니다.
+   * 검색·출처별·지난 딜처럼 "찾으러 온" 화면에서만 씁니다.
+   */
+  includeOld?: boolean;
 }
 
 export interface ListResult {
@@ -49,7 +64,7 @@ function sortList(list: DealWithSource[], sort: SortKey) {
 
 export async function listDeals(p: ListParams = {}): Promise<ListResult> {
   const {
-    category, sourceId, sort = 'rank', page = 1, perPage = 24, query,
+    category, sourceId, sort = 'rank', page = 1, perPage = 24, query, includeOld = false,
   } = p;
 
   if (!isConfigured) {
@@ -99,6 +114,13 @@ export async function listDeals(p: ListParams = {}): Promise<ListResult> {
   if (category && category !== 'all') q = q.eq('category', category);
   if (sourceId) q = q.eq('source_id', sourceId);
   if (query) q = q.or(`title.ilike.%${query}%,summary.ilike.%${query}%`);
+
+  // 검색어가 있으면 기간 제한을 걸지 않는다 — 찾는 게 명확한 사람에게
+  // "최근 48시간에 없어서 결과 0건"은 그냥 고장난 검색으로 보인다.
+  if (!includeOld && !query) {
+    const since = new Date(Date.now() - FRESH_WINDOW_HOURS * 3600_000).toISOString();
+    q = q.gte('published_at', since);
+  }
   if (sort === 'price') q = q.not('price_value', 'is', null);
 
   const o = orderFor(sort);
