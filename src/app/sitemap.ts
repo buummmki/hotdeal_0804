@@ -11,6 +11,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     { url: base, changeFrequency: 'hourly', priority: 1 },
+    // 블로그 유입의 착지점. 홈 다음으로 중요한 페이지라 우선순위를 높게 둔다.
+    { url: `${base}/food`, changeFrequency: 'hourly' as const, priority: 0.9 },
     ...CATEGORIES.filter((c) => c.slug !== 'all').map((c) => ({
       url: `${base}/?cat=${c.slug}`,
       changeFrequency: 'hourly' as const,
