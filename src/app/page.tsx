@@ -3,7 +3,8 @@ import { listDeals, hotDeals, latestDeals, mostCommented } from '@/lib/queries';
 import { categoryLabel } from '@/lib/types';
 import type { SortKey } from '@/lib/types';
 import DealCard from '@/components/DealCard';
-import Sidebar from '@/components/Sidebar';
+import Sidebar, { MobileCuration } from '@/components/Sidebar';
+import { MobileHotStrip } from '@/components/Curation';
 import Pagination from '@/components/Pagination';
 import { CategoryTabs, SortTabs } from '@/components/Tabs';
 import MockNotice from '@/components/MockNotice';
@@ -38,6 +39,10 @@ export default async function HomePage({
       <Suspense fallback={<div className="h-10" />}>
         <CategoryTabs active={cat} />
       </Suspense>
+
+      {/* 모바일에는 사이드바가 없어 인기 딜을 볼 방법이 없다. 목록 위에 가로로 얹는다.
+          1페이지·인기순일 때만 — 2페이지에서까지 같은 걸 반복하면 방해가 된다. */}
+      {page === 1 && sort === 'rank' && <MobileHotStrip deals={hot} />}
 
       <div className="mt-5 flex gap-6">
         <div className="min-w-0 flex-1">
@@ -89,6 +94,9 @@ export default async function HomePage({
             basePath="/"
             query={{ cat: cat === 'all' ? undefined : cat, sort: sort === 'rank' ? undefined : sort }}
           />
+
+          {/* 목록을 다 본 모바일 방문자에게 이어서 볼 거리 + 광고 */}
+          <MobileCuration latest={latest} commented={commented} />
         </div>
 
         <Sidebar hot={hot} latest={latest} commented={commented} />
