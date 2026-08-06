@@ -63,7 +63,12 @@ export const ppomppu: Parser = {
         cleanText(row.find(SELECTORS.dateCell).first().attr('title')) ||
         cleanText(row.find(SELECTORS.time).first().text());
 
-      const thumb = row.find(SELECTORS.thumb).first().attr('src');
+      // 목록 <img> 는 60px 짜리 썸네일이라 상세 페이지에서 확대하면 뭉개진다.
+      // 썸네일 링크의 tooltip 속성에 원본 이미지 주소가 들어 있어 그쪽을 우선 쓴다.
+      //   tooltip="P_img://cdn2.ppomppu.co.kr/zboard/data3/2026/0806/xxxx.jpg"
+      const tooltip = row.find(SELECTORS.thumbLink).first().attr('tooltip');
+      const original = tooltip?.replace(/^P_img:/i, '');
+      const thumb = original || row.find(SELECTORS.thumb).first().attr('src');
 
       items.push({
         externalId,

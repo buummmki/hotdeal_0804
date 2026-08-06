@@ -152,7 +152,12 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
           <img
             src={deal.image_url}
             alt={deal.title}
-            className="mt-4 w-full rounded-lg border border-line object-cover"
+            loading="lazy"
+            // 뽐뿌 CDN 은 외부 Referer 를 302 로 막는다
+            referrerPolicy="no-referrer"
+            // 작은 썸네일이 억지로 늘어나 뭉개지지 않도록 원본 크기를 넘기지 않는다.
+            // (w-full 로 늘리면 60px 이미지가 700px 로 확대돼 계단현상이 생김)
+            className="mt-4 h-auto max-h-[520px] w-auto max-w-full rounded-lg border border-line object-contain"
           />
         )}
 
